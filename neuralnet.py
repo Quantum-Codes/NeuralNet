@@ -13,13 +13,14 @@ class Layer:
     def __init__(self, dimension: tuple[int, int], activation_func: Literal['sigmoid', 'relu', 'tanh']):
         self.dimension = dimension
         self.activation_func = self.activation_funcs[activation_func]
+        self.activation_func_name = activation_func
         self.weights = np.random.rand(*dimension)
         self.bias = np.random.rand(dimension[0], 1)
+        self.dot_output = np.empty((dimension[0], 1)) # save for backpropogation
             
     def forward_propogate(self, inputs: np.typing.NDArray) -> np.typing.NDArray:
-        self.y = np.dot(self.weights, inputs) + self.bias
-        print(self.weights.shape, "x", inputs.shape, "+", self.bias.shape, "=", self.y.shape)
-        self.y = self.activation_func(self.y)
+        self.dot_output = np.dot(self.weights, inputs) + self.bias
+        self.y = self.activation_func(self.dot_output)
         return self.y
     
 
