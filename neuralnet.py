@@ -16,19 +16,18 @@ class Layer:
     }
     
     
-    def __init__(self, dimension: tuple[int, int], activation_func: Literal['sigmoid', 'relu']):
+    def __init__(self, dimension: tuple[int, int], activation_func: Literal['sigmoid', 'relu', 'linear']):
         self.dimension = dimension
         self.activation_func = self.activation_funcs[activation_func]
         self.diff_activation_func = self.diff_activation[activation_func]
         self.weights = np.random.rand(*dimension) * 1
         self.bias = np.random.rand(dimension[0], 1) * 1
-        """self.weights = np.array((1.0,1.0)).reshape(1,2)
-        self.bias = np.array([[0.0]])"""
-        self.dot_output = np.empty((dimension[0], 1)) # save for backpropogation
+        self.dot_output = None # save for backpropogation
+        self.y = None # save for backpropogation
             
     def forward_propogate(self, inputs: np.typing.NDArray) -> np.typing.NDArray:
-        self.dot_output = np.dot(self.weights, inputs) + self.bias
-        self.y = self.activation_func(self.dot_output)
+        self.dot_output = np.dot(self.weights, inputs) + self.bias # size (neurons, batch_size)
+        self.y = self.activation_func(self.dot_output) # size (neurons, batch_size)
         return self.y
     
 
@@ -38,15 +37,26 @@ class Network:
         self.layers: list[Layer] = []
         self.layer_count = 0
             
-    def add_hidden_layer(self, neurons: int, activation_func: Literal['sigmoid', 'relu']):
+    def add_hidden_layer(self, neurons: int, activation_func: Literal['sigmoid', 'relu', 'linear']):
+        """ docstr """
+        """
+        Dimension of weights - enable WX+b multiplication and addition. 
+        b size = (neurons, 1)
+        X size = (input_rows,1) or (input_rows,batch_size)
+        so W size = (neurons,input_rows)
+        assume as the weights connecting to each neuron in current layer is owned by the neuron in current layer. 
+        so list size = no. of neurons in prev layer = size of output of previous layer (which is input to current layer)
+        
+        ouput of WX+b = (neurons, batch_size) -> each col is the output of each col of input
+        """
         if self.layer_count == 0:
-            self.dimension = (neurons, self.input_size)
+            self.dimension = (neurons, self.input_size) # weights dimension
         else:
             self.dimension = (neurons, self.layers[-1].dimension[0])
         self.layers.append(Layer(self.dimension, activation_func))
         self.layer_count += 1
     
-    def add_output_layer(self, output_size: int, activation_func: Literal['sigmoid', 'relu']): # to be more clear in usage code
+    def add_output_layer(self, output_size: int, activation_func: Literal['sigmoid', 'relu', 'linear']): # to be more clear in usage code
         self.add_hidden_layer(output_size, activation_func)
     
     def predict(self, inputs: np.typing.NDArray):
@@ -55,11 +65,21 @@ class Network:
         return inputs
     
     def cost(self, expected_output: np.typing.NDArray, predicted_output: np.typing.NDArray) -> float:
-        return np.sum((expected_output - predicted_output) ** 2)
+        # avg cost of batch
+        return np.sum((expected_output - predicted_output) ** 2) / predicted_output.shape[1]
+    
 
     def train(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, learning_rate: float = 0.01, clip: float = 1.0) -> None:
+        """
+        This is a different kind of train, give it batches and it will train
+        batch division to be done outside this func.
+        In future, rename this to "backpropogate" and make a wrapper "train" func that does batch division, dynamic learning rates, decide when to stop training and calls this func to do train
+        """
         prediction = self.predict(inputs)
-        loss = self.cost(expected_output, prediction) # there is no use to calculate loss?
+        batch_size = inputs.shape[1]
+        # average loss over the whole batch
+        loss = self.cost(expected_output, prediction)
+        
         # Backpropagation
         # diff(cost) * diff(Activation) * diff(dot product wrt each weight) = contribution of weight to error
         
@@ -73,7 +93,7 @@ class Network:
             layer.weights -= learning_rate * np.dot(loss_gradient, layer_inputs.T) # diff(dot product wrt each weight) = input (output of previous layer)
             layer.bias -= learning_rate * loss_gradient # diff(dot product wrt bias) = 1
             
-            loss_gradient = np.dot(layer.weights.T, loss_gradient) # propagate the gradient back to the previous layer
+            loss_gradient = np.dot(layer.weights.T, loss_gradient) # propagate the gradient back to the previous layer. i am using updated weights but due to clipping and small learning rate, it should essentially be the same
 
         return loss
 
