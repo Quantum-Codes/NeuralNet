@@ -2,10 +2,11 @@ from neuralnet import Network
 import numpy as np
 import matplotlib.pyplot as plt
 
-model = Network(2)
-model.add_output_layer(1, "linear") 
+model = Network(2) # 2 inputs defined
+model.add_output_layer(1, "linear") # 1 neuron, with linear activation (no activation)
 #model.print_weights()
 
+#validation set and training data is generated in same way, so it is possible to be trained on the validation set
 val_batch_size = 100
 validation_inputs = np.random.rand(2, val_batch_size) * 100
 validation_targets = np.sum(validation_inputs, axis=0, keepdims=True) * 10 # keepdims lets it stay as a matrix
