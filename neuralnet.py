@@ -20,8 +20,10 @@ class Layer:
         self.dimension = dimension
         self.activation_func = self.activation_funcs[activation_func]
         self.diff_activation_func = self.diff_activation[activation_func]
-        self.weights = np.random.rand(*dimension) * 1
-        self.bias = np.random.rand(dimension[0], 1) * 1
+        self.weights = np.random.rand(*dimension) * 0.01
+        #self.bias = np.random.rand(dimension[0], 1) * 1
+        # acc to google, bias is started with zeroes or super small vals
+        self.bias = np.zeros((dimension[0], 1))
         self.dot_output = None # save for backpropogation
         self.y = None # save for backpropogation
             
@@ -56,7 +58,7 @@ class Network:
         self.layers.append(Layer(self.dimension, activation_func))
         self.layer_count += 1
     
-    def add_output_layer(self, output_size: int, activation_func: Literal['sigmoid', 'relu', 'linear']): # to be more clear in usage code
+    def add_output_layer(self, output_size: int, activation_func: Literal['sigmoid', 'relu', 'linear'] = 'linear'): # to be more clear in usage code
         self.add_hidden_layer(output_size, activation_func)
     
     def predict(self, inputs: np.typing.NDArray):
@@ -74,6 +76,8 @@ class Network:
         This is a different kind of train, give it batches and it will train
         batch division to be done outside this func.
         In future, rename this to "backpropogate" and make a wrapper "train" func that does batch division, dynamic learning rates, decide when to stop training and calls this func to do train
+        
+        BATCH training not implemented yet
         """
         prediction = self.predict(inputs)
         batch_size = inputs.shape[1]
