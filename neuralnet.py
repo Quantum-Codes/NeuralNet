@@ -87,17 +87,19 @@ class Network:
         # Backpropagation
         # diff(cost) * diff(Activation) * diff(dot product wrt each weight) = contribution of weight to error
         
-        
-        loss_gradient = (prediction - expected_output)*2 # diff(cost) wrt output of last layer
+        loss_gradient = (prediction - expected_output) * 2 / batch_size # diff(cost) wrt output of last layer, size = (last_layer_neurons, batch_size)
         for i, layer in reversed(list(enumerate(self.layers))): # current layer i, backwards looping
-            layer_inputs = inputs if i == 0 else self.layers[i-1].y # if no hidden layer before it, use inputs as last layer input
-            loss_gradient *= layer.diff_activation_func(layer.dot_output) # diff(activation) 
+            layer_inputs = inputs if i == 0 else self.layers[i-1].y # if no hidden layer before it, use inputs as last layer input, size = (prev_layer_output_neurons, batch_size)
+            loss_gradient *= layer.diff_activation_func(layer.dot_output) # diff(activation) , size = (curr_layer_neurons, batch_size)
+            # current loss gradient size = (curr_layer_neurons, batch_size) * (curr_layer_neurons, batch_size) [elementwise, so same size]
             # clip the gradient to prevent exploding gradients
             loss_gradient = np.clip(loss_gradient, -clip, clip)
+            # (curr_layer_neurons, batch_size) x (batch_size, prev_layer_output_neurons) = (curr_layer_neurons, prevlayer_neurons) = sizeof current layer weights
             layer.weights -= learning_rate * np.dot(loss_gradient, layer_inputs.T) # diff(dot product wrt each weight) = input (output of previous layer)
-            layer.bias -= learning_rate * loss_gradient # diff(dot product wrt bias) = 1
-            
+            layer.bias -= learning_rate * np.sum(loss_gradient, axis = 1, keepdims = True) # diff(dot product wrt bias) = 1, mismatched size for batches so we sum to add contribution of all batches (didnt need to do for weights cuz the matrix multiplication simply did this)
+            # (curr_layer_neurons, prevlayer_neurons).T x (curr_layer_neurons, batch_size)  =  (prev_layer_neurons, batch_size) (in next iteration, prev layer becomes current layer)
             loss_gradient = np.dot(layer.weights.T, loss_gradient) # propagate the gradient back to the previous layer. i am using updated weights but due to clipping and small learning rate, it should essentially be the same
+            
 
         return loss
 
