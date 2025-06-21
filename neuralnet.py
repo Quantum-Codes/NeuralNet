@@ -96,7 +96,7 @@ class Network:
 
         return loss
     
-    def train(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, validation_input: np.typing.NDArray, validation_output: np.typing.NDArray, batch_size: int = 10, learning_rate: float = 0.01, epochs: int = 1000, clip: float = 1.0) -> list[list[float]]:
+    def train(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, validation_input: np.typing.NDArray, validation_output: np.typing.NDArray, batch_size: int = 10, learning_rate: float = 0.01, epochs: int = 100, clip: float = 1.0) -> list[list[float]]:
         """
         todo: dynamic learning rates, decide when to stop training, lookup other stuff and implement maybe
         """

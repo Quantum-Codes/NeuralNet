@@ -11,12 +11,15 @@ val_batch_size = 100
 validation_inputs = np.random.rand(2, val_batch_size) * 100
 validation_targets = np.sum(validation_inputs, axis=0, keepdims=True) * 10 # keepdims lets it stay as a matrix
 
+# at 22 epochs loss reduces to 0.01
 input_batch_size = 10000
 inputs = np.random.rand(2, input_batch_size) * 100
-target = (np.array([np.sum(inputs)]) * 10).reshape(1,1)
-losses = model.train(inputs, target, validation_inputs, validation_targets, learning_rate=0.00001)
+target = np.sum(inputs, axis = 0, keepdims=True) * 10
+losses = model.train(inputs, target, validation_inputs, validation_targets, learning_rate=0.00001, batch_size=100)
 
-        
+
+print(model.pre)
+
     
     #model.print_weights()
 
@@ -27,5 +30,5 @@ plt.xlabel("Iteration")
 plt.ylim((0,10))
 plt.ylabel("Loss")
 plt.legend()
-plt.title("Loss vs Iteration")
+plt.title("Loss vs Epoch")
 plt.show()
