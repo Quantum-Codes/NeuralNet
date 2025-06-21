@@ -10,18 +10,12 @@ model.add_output_layer(1, "linear") # 1 neuron, with linear activation (no activ
 val_batch_size = 100
 validation_inputs = np.random.rand(2, val_batch_size) * 100
 validation_targets = np.sum(validation_inputs, axis=0, keepdims=True) * 10 # keepdims lets it stay as a matrix
-losses = [[], []]
-for i in range(100000):
-    inputs = np.random.rand(2, 1) * 100
-    target = (np.array([np.sum(inputs)]) * 10).reshape(1,1)
-    loss = model.train(inputs, target, learning_rate=0.00001)
-    validation_loss = model.cost(validation_targets, model.predict(validation_inputs))
-    losses[0].append(loss)
-    losses[1].append(validation_loss)
-    print(f"Iteration {i+1}, Loss: {loss}")
-    if loss < 0.01:
-        print("TRAINING COMPLETE")
-        # actually not complete, this is a 'luck hole', so dont break
+
+input_batch_size = 10000
+inputs = np.random.rand(2, input_batch_size) * 100
+target = (np.array([np.sum(inputs)]) * 10).reshape(1,1)
+losses = model.train(inputs, target, validation_inputs, validation_targets, learning_rate=0.00001)
+
         
     
     #model.print_weights()

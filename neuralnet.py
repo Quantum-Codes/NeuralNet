@@ -71,14 +71,7 @@ class Network:
         return np.sum((expected_output - predicted_output) ** 2) / predicted_output.shape[1]
     
 
-    def train(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, learning_rate: float = 0.01, clip: float = 1.0) -> None:
-        """
-        This is a different kind of train, give it batches and it will train
-        batch division to be done outside this func.
-        In future, rename this to "backpropogate" and make a wrapper "train" func that does batch division, dynamic learning rates, decide when to stop training and calls this func to do train
-        
-        BATCH training not implemented yet
-        """
+    def backpropogate_batch(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, learning_rate: float = 0.01, clip: float = 1.0) -> int:
         prediction = self.predict(inputs)
         batch_size = inputs.shape[1]
         # average loss over the whole batch
@@ -102,7 +95,32 @@ class Network:
             
 
         return loss
-
+    
+    def train(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, validation_input: np.typing.NDArray, validation_output: np.typing.NDArray, batch_size: int = 10, learning_rate: float = 0.01, epochs: int = 1000, clip: float = 1.0) -> list[list[float]]:
+        """
+        todo: dynamic learning rates, decide when to stop training, lookup other stuff and implement maybe
+        """
+        batches = [(inputs[:, i:i+10], expected_output[:, i:i+10]) for i in range(0, inputs.shape[1], batch_size)]
+        losses = [[], []]
+        i = 0
+        for i in range(1, epochs+1):
+            # NEED TO SHUFFLE DATA CUZ NETWORKS LEARN ORDEr??
+            training_loss_ith_iteration = []
+            
+            for inp, out in batches:
+                training_loss = self.backpropogate_batch(inp, out, learning_rate=learning_rate, clip=clip)
+                training_loss_ith_iteration.append(training_loss)
+            
+            training_loss = np.mean(training_loss_ith_iteration)
+            validation_loss = self.cost(validation_output, self.predict(validation_input))
+            if training_loss < 0.01:
+                print("TRAINING COMPLETE")
+                # actually not complete, this is a 'luck hole', so dont break
+            print(f"Epoch {i}/{epochs}: Loss: {training_loss}")
+            losses[0].append(training_loss)
+            losses[1].append(validation_loss)
+        return losses
+    
     def print_weights(self):
         for i, layer in enumerate(self.layers):
             print(f"Layer {i+1} weights:\n{layer.weights}\nBias:\n{layer.bias}\n")
