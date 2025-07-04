@@ -20,7 +20,7 @@ class Layer:
         self.dimension = dimension
         self.activation_func = self.activation_funcs[activation_func]
         self.diff_activation_func = self.diff_activation[activation_func]
-        self.weights = np.random.rand(*dimension) * 0.01
+        self.weights = np.random.rand(*dimension) * 0.01  # np.ones(dimension) * 0.01 will make all weights and biases same 
         #self.bias = np.random.rand(dimension[0], 1) * 1
         # acc to google, bias is started with zeroes or super small vals
         self.bias = np.zeros((dimension[0], 1))
@@ -66,6 +66,7 @@ class Network:
             inputs = layer.forward_propogate(inputs)
         return inputs
     
+    # ACCOMODATE MORE LOSS FUNCS
     def cost(self, expected_output: np.typing.NDArray, predicted_output: np.typing.NDArray) -> float:
         # avg cost of batch
         return np.sum((expected_output - predicted_output) ** 2) / predicted_output.shape[1]
@@ -80,6 +81,7 @@ class Network:
         # Backpropagation
         # diff(cost) * diff(Activation) * diff(dot product wrt each weight) = contribution of weight to error
         
+        # ACCOMODATE MORE LOSS FUNCS
         loss_gradient = (prediction - expected_output) * 2 / batch_size # diff(cost) wrt output of last layer, size = (last_layer_neurons, batch_size)
         for i, layer in reversed(list(enumerate(self.layers))): # current layer i, backwards looping
             layer_inputs = inputs if i == 0 else self.layers[i-1].y # if no hidden layer before it, use inputs as last layer input, size = (prev_layer_output_neurons, batch_size)
@@ -98,7 +100,7 @@ class Network:
     
     def train(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, validation_input: np.typing.NDArray, validation_output: np.typing.NDArray, batch_size: int = 10, learning_rate: float = 0.01, epochs: int = 100, clip: float = 1.0) -> list[list[float]]:
         """
-        todo: dynamic learning rates, decide when to stop training, lookup other stuff and implement maybe
+        todo: dynamic learning rates, decide when to stop training, shuffle data after every epoch (wtf?), lookup other stuff and implement maybe
         """
         batches = [(inputs[:, i:i+10], expected_output[:, i:i+10]) for i in range(0, inputs.shape[1], batch_size)]
         losses = [[], []]
@@ -106,7 +108,11 @@ class Network:
         for i in range(1, epochs+1):
             # NEED TO SHUFFLE DATA CUZ NETWORKS LEARN ORDEr??
             training_loss_ith_iteration = []
-            
+            """ shuffle by gemini
+            permutation_indices = np.random.permutation(inputs.shape[1])
+            inputs = inputs[:, permutation_indices]
+            expected_output = expected_output[:, permutation_indices]
+            batches = [(inputs[:, i:i+10], expected_output[:, i:i+10]) for i in range(0, inputs.shape[1], batch_size)]"""
             for inp, out in batches:
                 training_loss = self.backpropogate_batch(inp, out, learning_rate=learning_rate, clip=clip)
                 training_loss_ith_iteration.append(training_loss)
