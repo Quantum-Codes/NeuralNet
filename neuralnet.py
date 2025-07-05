@@ -1,5 +1,5 @@
 import numpy as np
-import math
+import math, pickle
 from typing import Literal
 
 class Layer:
@@ -18,6 +18,7 @@ class Layer:
     
     def __init__(self, dimension: tuple[int, int], activation_func: Literal['sigmoid', 'relu', 'linear']):
         self.dimension = dimension
+        self.activation_func_name = activation_func # for saving model
         self.activation_func = self.activation_funcs[activation_func]
         self.diff_activation_func = self.diff_activation[activation_func]
         self.weights = np.random.rand(*dimension) * 0.01  # np.ones(dimension) * 0.01 will make all weights and biases same 
@@ -38,7 +39,38 @@ class Network:
         self.input_size = input_size
         self.layers: list[Layer] = []
         self.layer_count = 0
+        
+    def save_model(self, file_name: str = "model.dat"):
+        layer_data = [{"inputs": self.input_size}]
+        for layer in self.layers:
+            layer_data.append(
+                {
+                    "activation_func": layer.activation_func_name,
+                    "weights": layer.weights,
+                    "bias": layer.bias
+                }
+            )
+        
+        with open(file_name, "wb") as file:
+            pickle.dump(layer_data, file)
+
+    @classmethod
+    def load_model(cls, file_name: str = "model.dat"):
+        with open(file_name, "rb") as file:
+            layer_data = pickle.load(file)
+
+        input_size = layer_data.pop(0)["inputs"]
+        model = cls(input_size)
+        for layer in layer_data:
+            model.add_hidden_layer(layer["weights"].shape[0], layer["activation_func"])
+            model.layers[-1].weights = layer["weights"]
+            model.layers[-1].bias = layer["bias"]
+
+        return model 
+
             
+
+
     def add_hidden_layer(self, neurons: int, activation_func: Literal['sigmoid', 'relu', 'linear']):
         """ docstr """
         """

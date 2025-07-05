@@ -19,7 +19,7 @@ outputs = inputs ** 2
 val_inputs = np.random.rand(1, 100) * 10
 val_outputs = val_inputs ** 2
 
-losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.00001, epochs=1000)
+losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.00001, epochs=400)
 
 print(f"3^2 = {model.predict(np.array(3).reshape((1,1)))}")
 print(f"5^2 = {model.predict(np.array(5).reshape((1,1)))}")
@@ -27,6 +27,20 @@ print(f"1.2^2 = {model.predict(np.array(1.2).reshape((1,1)))}")
 print(f"4^2 = {model.predict(np.array(4).reshape((1,1)))}")
 print(f"3.5^2 = {model.predict(np.array(3.5).reshape((1,1)))}")
 print(f"4.25^2 = {model.predict(np.array(4.25).reshape((1,1)))}")
+
+model.save_model()
+del model
+model = "332"
+model = Network.load_model()
+losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.00001, epochs=100)
+
+print(f"3^2 = {model.predict(np.array(3).reshape((1,1)))}")
+print(f"5^2 = {model.predict(np.array(5).reshape((1,1)))}")
+print(f"1.2^2 = {model.predict(np.array(1.2).reshape((1,1)))}")
+print(f"4^2 = {model.predict(np.array(4).reshape((1,1)))}")
+print(f"3.5^2 = {model.predict(np.array(3.5).reshape((1,1)))}")
+print(f"4.25^2 = {model.predict(np.array(4.25).reshape((1,1)))}")
+
 #model.print_weights()
 """
 #predict 2.2x + 5
