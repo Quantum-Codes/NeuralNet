@@ -106,7 +106,7 @@ class Network:
     def cost(self, expected_output: np.typing.NDArray, predicted_output: np.typing.NDArray) -> float:
         # avg cost of batch
         if self.layers[-1].activation_func_name == "softmax": # if classification mode
-            return np.sum(-expected_output * np.log(predicted_output + 1e-9)) / predicted_output.shape[1]  # small value to prevent log(0)
+            return np.sum((0-expected_output) * np.log(predicted_output + 1e-9)) / predicted_output.shape[1]  # small value to prevent log(0)
         # regression mode
         return np.sum((expected_output - predicted_output) ** 2) / predicted_output.shape[1]
     

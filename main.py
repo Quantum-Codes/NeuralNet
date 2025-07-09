@@ -7,6 +7,32 @@ import matplotlib.pyplot as plt
 # classify
 model = Network(1)
 # model.add_hidden_layer(1, 'sigmoid') 
+model.add_output_layer(2, 'softmax')
+
+# exclude range (3,5) to prove it fits graph and not memorizing
+# performs bad when test > traning range but good when tested in (3,5)
+inputs = (np.random.rand(1, 1000) * 10) 
+outputs = (inputs >= 7) # boolean list
+# do onehot
+outputs = np.array([[1, 0] if x else [0, 1] for x in outputs[0]]).T.astype(float)  # convert to one-hot encoding
+
+val_inputs = np.random.rand(1, 100) * 10
+val_outputs = val_inputs >= 7
+val_outputs = np.array([[1, 0] if x else [0, 1] for x in val_outputs[0]]).T.astype(float)  # convert to one-hot encoding
+
+losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.1, epochs=100)
+
+
+test_values = [2,3,4,7, 7.1, 8, 9.5, 10, 12]
+for val in test_values:
+    pred = model.predict(np.array(val).reshape((1, 1)))
+    print(f"{val} >= 7? Predicted: {pred}")
+
+
+"""
+# classify
+model = Network(1)
+# model.add_hidden_layer(1, 'sigmoid') 
 model.add_output_layer(1, 'sigmoid')
 
 # exclude range (3,5) to prove it fits graph and not memorizing
@@ -25,7 +51,7 @@ for val in test_values:
     pred = model.predict(np.array(val).reshape((1, 1)))
     print(f"{val} >= 7? Predicted: {pred}")
 
-
+"""
 
 """# predict x^2
 model = Network(1)
