@@ -7,12 +7,16 @@ class Layer:
         "sigmoid": lambda x: 1 / (1 + np.exp(-x)),
         "relu": lambda x: np.maximum(0, x), # could do maximum(x, 0, x) cuz faster but it is inplace so need to account separately
         "linear": lambda x: x,  # linear activation for output layer
+        "softmax": lambda x: np.exp(x) / np.sum(np.exp(x), axis=0, keepdims=True),  # softmax for multi-class classification
     }
     
+    # https://medium.com/data-science/derivative-of-the-softmax-function-and-the-categorical-cross-entropy-loss-ffceefc081d1
+    # softmax derivative is a matrix for input of an array; but when combined with cross entropy loss, it simplifies to the output minus the expected output. so we do that instead and just use the softmax function for forward propogation
     diff_activation = { # differentiated activation functions
         "sigmoid": lambda x: np.exp(-x) / (1 + np.exp(-x))**2,
         "relu": lambda x: np.maximum(0, np.sign(x)),  # derivative of ReLU is 1 for x > 0, else 0
         "linear": lambda x: np.ones_like(x),  # derivative of linear is 1
+        "softmax": lambda x: np.ones_like(x),  # for softmax, we use the output minus expected output in backpropagation, so we return ones here
     }
     
     
@@ -62,7 +66,7 @@ class Network:
         input_size = layer_data.pop(0)["inputs"]
         model = cls(input_size)
         for layer in layer_data:
-            model.add_hidden_layer(layer["weights"].shape[0], layer["activation_func"])
+            model.add_hidden_layer(layer["weights"].shape[0], layer["activation_func"]) # this works even for output layer since that function just called add_hidden_layer anyway
             model.layers[-1].weights = layer["weights"]
             model.layers[-1].bias = layer["bias"]
 
@@ -90,7 +94,7 @@ class Network:
         self.layers.append(Layer(self.dimension, activation_func))
         self.layer_count += 1
     
-    def add_output_layer(self, output_size: int, activation_func: Literal['sigmoid', 'relu', 'linear'] = 'linear'): # to be more clear in usage code
+    def add_output_layer(self, output_size: int, activation_func: Literal['sigmoid', 'relu', 'linear', 'softmax'] = 'linear'): # to be more clear in usage code
         self.add_hidden_layer(output_size, activation_func)
     
     def predict(self, inputs: np.typing.NDArray):
@@ -101,6 +105,9 @@ class Network:
     # ACCOMODATE MORE LOSS FUNCS
     def cost(self, expected_output: np.typing.NDArray, predicted_output: np.typing.NDArray) -> float:
         # avg cost of batch
+        if self.layers[-1].activation_func_name == "softmax": # if classification mode
+            return np.sum(-expected_output * np.log(predicted_output + 1e-9)) / predicted_output.shape[1]  # small value to prevent log(0)
+        # regression mode
         return np.sum((expected_output - predicted_output) ** 2) / predicted_output.shape[1]
     
 
@@ -114,7 +121,11 @@ class Network:
         # diff(cost) * diff(Activation) * diff(dot product wrt each weight) = contribution of weight to error
         
         # ACCOMODATE MORE LOSS FUNCS
-        loss_gradient = (prediction - expected_output) * 2 / batch_size # diff(cost) wrt output of last layer, size = (last_layer_neurons, batch_size)
+        if self.layers[-1].activation_func_name == "softmax": # if classification mode
+            loss_gradient = (prediction - expected_output) / batch_size # diff(cost) wrt dot output of last layer (so this includes diff(Activation) wrt its dot outputs.)
+        else: # regression mode
+            loss_gradient = (prediction - expected_output) * 2 / batch_size # diff(cost) wrt output of last layer, size = (last_layer_neurons, batch_size)
+
         for i, layer in reversed(list(enumerate(self.layers))): # current layer i, backwards looping
             layer_inputs = inputs if i == 0 else self.layers[i-1].y # if no hidden layer before it, use inputs as last layer input, size = (prev_layer_output_neurons, batch_size)
             loss_gradient *= layer.diff_activation_func(layer.dot_output) # diff(activation) , size = (curr_layer_neurons, batch_size)
@@ -134,17 +145,15 @@ class Network:
         """
         todo: dynamic learning rates, decide when to stop training, shuffle data after every epoch (wtf?), lookup other stuff and implement maybe
         """
-        batches = [(inputs[:, i:i+10], expected_output[:, i:i+10]) for i in range(0, inputs.shape[1], batch_size)]
         losses = [[], []]
         i = 0
         for i in range(1, epochs+1):
             # NEED TO SHUFFLE DATA CUZ NETWORKS LEARN ORDEr??
             training_loss_ith_iteration = []
-            """ shuffle by gemini
             permutation_indices = np.random.permutation(inputs.shape[1])
             inputs = inputs[:, permutation_indices]
             expected_output = expected_output[:, permutation_indices]
-            batches = [(inputs[:, i:i+10], expected_output[:, i:i+10]) for i in range(0, inputs.shape[1], batch_size)]"""
+            batches = [(inputs[:, i:i+batch_size], expected_output[:, i:i+batch_size]) for i in range(0, inputs.shape[1], batch_size)]
             for inp, out in batches:
                 training_loss = self.backpropogate_batch(inp, out, learning_rate=learning_rate, clip=clip)
                 training_loss_ith_iteration.append(training_loss)
