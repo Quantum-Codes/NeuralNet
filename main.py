@@ -4,13 +4,47 @@ from neuralnet import Network
 import numpy as np
 import matplotlib.pyplot as plt
 
-# classify
+#classify where 2d point lies in which region of x+y>5 and x-y<3
+model = Network(2)
+model.add_output_layer(4, 'softmax')
+
+inputs = np.random.rand(2, 10000) * 10  # 2 inputs, 1000 samples
+sums = (inputs[0]+inputs[1]) > 5
+diff = (inputs[0]-inputs[1]) < 3
+outputs = np.zeros((4, 10000))  # 4 classes for softmax output
+indexes = (sums & diff) + (~sums & diff) * 2 + (sums & ~diff) * 3 + (~sums & ~diff) * 4 - 1
+cases = {
+    1: "x+y>5 and x-y<3",
+    2: "x-y<3",
+    3: "x+y>5",
+    4: "none"
+}
+outputs[indexes, np.arange(10000)] = 1
+
+val_inputs = np.random.rand(2, 1000) * 10  # 2 inputs, 1000 samples
+sums = (val_inputs[0]+val_inputs[1]) > 5
+diff = (val_inputs[0]-val_inputs[1]) < 3
+val_outputs = np.zeros((4, 1000))  # 4 classes for softmax output
+indexes = (sums & diff) + (~sums & diff) * 2 + (sums & ~diff) * 3 + (~sums & ~diff) * 4 - 1
+val_outputs[indexes, np.arange(1000)] = 1
+#Optional: Print a few samples to check
+
+losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.1, batch_size=100, epochs=1000) #smaller batch sizes are better
+
+# test data
+test_inputs = np.array([[9, 8], [4, 0], [4,1], [7,0], [-5,-2]]).T
+predictions = model.predict(test_inputs)
+print("\nTest Inputs:")
+print(test_inputs)
+print("\nPredictions (One-Hot Encoded):")
+print(predictions)
+for i in range(test_inputs.shape[1]):
+    print(f"Input: {test_inputs[:, i]}, Predicted Class: {cases[np.argmax(predictions[:, i]) + 1]}")
+
+"""# classify using softmax (much better than sigmoid)
 model = Network(1)
-# model.add_hidden_layer(1, 'sigmoid') 
 model.add_output_layer(2, 'softmax')
 
-# exclude range (3,5) to prove it fits graph and not memorizing
-# performs bad when test > traning range but good when tested in (3,5)
 inputs = (np.random.rand(1, 1000) * 10) 
 outputs = (inputs >= 7) # boolean list
 # do onehot
@@ -27,16 +61,13 @@ test_values = [2,3,4,7, 7.1, 8, 9.5, 10, 12]
 for val in test_values:
     pred = model.predict(np.array(val).reshape((1, 1)))
     print(f"{val} >= 7? Predicted: {pred}")
-
-
+"""
 """
 # classify
 model = Network(1)
 # model.add_hidden_layer(1, 'sigmoid') 
 model.add_output_layer(1, 'sigmoid')
 
-# exclude range (3,5) to prove it fits graph and not memorizing
-# performs bad when test > traning range but good when tested in (3,5)
 inputs = (np.random.rand(1, 10000) * 10) 
 outputs = inputs >= 7 # boolean list
 
