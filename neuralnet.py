@@ -1,5 +1,5 @@
 import numpy as np
-import math, pickle
+import pickle
 from typing import Literal
 
 class Layer:
@@ -7,7 +7,7 @@ class Layer:
         "sigmoid": lambda x: 1 / (1 + np.exp(-x)),
         "relu": lambda x: np.maximum(0, x), # could do maximum(x, 0, x) cuz faster but it is inplace so need to account separately
         "linear": lambda x: x,  # linear activation for output layer
-        "softmax": lambda x: np.exp(x) / np.sum(np.exp(x), axis=0, keepdims=True),  # softmax for multi-class classification
+        "softmax": lambda x: np.exp(x) / (np.sum(np.exp(x), axis=0, keepdims=True)),  # softmax for multi-class classification
     }
     
     # https://medium.com/data-science/derivative-of-the-softmax-function-and-the-categorical-cross-entropy-loss-ffceefc081d1
@@ -16,6 +16,7 @@ class Layer:
         "sigmoid": lambda x: np.exp(-x) / (1 + np.exp(-x))**2,
         "relu": lambda x: np.maximum(0, np.sign(x)),  # derivative of ReLU is 1 for x > 0, else 0
         "linear": lambda x: np.ones_like(x),  # derivative of linear is 1
+        # we never use the one below, its just here because code expects it to be.
         "softmax": lambda x: np.ones_like(x),  # for softmax, we use the output minus expected output in backpropagation, so we return ones here
     }
     
@@ -75,7 +76,7 @@ class Network:
             
 
 
-    def add_hidden_layer(self, neurons: int, activation_func: Literal['sigmoid', 'relu', 'linear']):
+    def add_hidden_layer(self, neurons: int, activation_func: Literal['sigmoid', 'relu', 'linear', 'softmax']):
         """ docstr """
         """
         Dimension of weights - enable WX+b multiplication and addition. 
@@ -102,16 +103,22 @@ class Network:
             inputs = layer.forward_propogate(inputs)
         return inputs
     
-    # ACCOMODATE MORE LOSS FUNCS
     def cost(self, expected_output: np.typing.NDArray, predicted_output: np.typing.NDArray) -> float:
         # avg cost of batch
         if self.layers[-1].activation_func_name == "softmax": # if classification mode
             return np.sum((0-expected_output) * np.log(predicted_output + 1e-9)) / predicted_output.shape[1]  # small value to prevent log(0)
+        elif self.layers[-1].activation_func_name == "sigmoid": # if binary classification mode
+        # Binary Cross-Entropy Loss, squaring in MSE just zeroes the error for sigmoid output (b/w 0 and 1)
+        # Ensure predicted_output is clipped to avoid log(0)
+            predicted_output = np.clip(predicted_output, 1e-9, 1.) # we can do log1
+            # BCE formula: - (y * log(p) + (1-y) * log(1-p)) / batch_size
+            loss = -np.sum(expected_output * np.log(predicted_output) + (1 - expected_output) * np.log(1 - predicted_output)) / predicted_output.shape[1]
+            return loss
         # regression mode
         return np.sum((expected_output - predicted_output) ** 2) / predicted_output.shape[1]
     
 
-    def backpropogate_batch(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, learning_rate: float = 0.01, clip: float = 1.0) -> int:
+    def backpropogate_batch(self, inputs: np.typing.NDArray, expected_output: np.typing.NDArray, learning_rate: float = 0.01, clip: float = 1.0) -> float:
         prediction = self.predict(inputs)
         batch_size = inputs.shape[1]
         # average loss over the whole batch
@@ -120,15 +127,20 @@ class Network:
         # Backpropagation
         # diff(cost) * diff(Activation) * diff(dot product wrt each weight) = contribution of weight to error
         
-        # ACCOMODATE MORE LOSS FUNCS
         if self.layers[-1].activation_func_name == "softmax": # if classification mode
+            loss_gradient = (prediction - expected_output) / batch_size # diff(cost) wrt dot output of last layer (so this includes diff(Activation) wrt its dot outputs.)
+        elif self.layers[-1].activation_func_name == "sigmoid": # if binary classification mode
+            # Binary Cross-Entropy Loss, squaring in MSE just zeroes the error for sigmoid output (b/w 0 and 1)
+            # Ensure predicted_output is clipped to avoid log(0)
             loss_gradient = (prediction - expected_output) / batch_size # diff(cost) wrt dot output of last layer (so this includes diff(Activation) wrt its dot outputs.)
         else: # regression mode
             loss_gradient = (prediction - expected_output) * 2 / batch_size # diff(cost) wrt output of last layer, size = (last_layer_neurons, batch_size)
 
         for i, layer in reversed(list(enumerate(self.layers))): # current layer i, backwards looping
             layer_inputs = inputs if i == 0 else self.layers[i-1].y # if no hidden layer before it, use inputs as last layer input, size = (prev_layer_output_neurons, batch_size)
-            loss_gradient *= layer.diff_activation_func(layer.dot_output) # diff(activation) , size = (curr_layer_neurons, batch_size)
+            # some of the loss gradient derivatives are already multiplied by diff(Activation) so we dont need to do it again
+            if not (i == len(self.layers) - 1 and layer.activation_func_name in ["softmax", "sigmoid"]):
+                loss_gradient *= layer.diff_activation_func(layer.dot_output) # diff(activation) , size = (curr_layer_neurons, batch_size)
             # current loss gradient size = (curr_layer_neurons, batch_size) * (curr_layer_neurons, batch_size) [elementwise, so same size]
             # clip the gradient to prevent exploding gradients
             loss_gradient = np.clip(loss_gradient, -clip, clip)
@@ -168,6 +180,6 @@ class Network:
             losses[1].append(validation_loss)
         return losses
     
-    def print_weights(self):
+    def print_weights(self) -> None:
         for i, layer in enumerate(self.layers):
             print(f"Layer {i+1} weights:\n{layer.weights}\nBias:\n{layer.bias}\n")
