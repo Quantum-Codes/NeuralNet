@@ -2,15 +2,15 @@ from neuralnet import Network
 import numpy as np
 import matplotlib.pyplot as plt
 
-#"""# XOR operation. non linearly separable, so needs hidden layer. regression mode
+"""# XOR operation. non linearly separable, so needs hidden layer. regression mode
 model = Network(2) # 2 inputs for XOR
-model.add_hidden_layer(120, 'relu') # A single hidden layer, 4 neurons (often enough for XOR)
-model.add_output_layer(1, 'sigmoid') # weirdly enough, just this was enough to get it to work, no hidden layers needed
+model.add_hidden_layer(41, 'relu') # 40 cant learn but 41 can
+model.add_output_layer(1, 'sigmoid')
 
 X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]]).T  # shape (2, 4)
 Y = np.array([[0, 1, 1, 0]])  # shape (1, 4)
 
-# Repeat to make it learnable with batch training
+# Repeat data for batch training
 inputs = np.tile(X, 250)  # (2, 1000)
 outputs = np.tile(Y, 250)  # (1, 1000)
 
@@ -21,7 +21,7 @@ val_outputs = np.tile(Y, 25)  # (1, 100)
 print("Sample training data (inputs and expected outputs):")
 for i in range(5):
     print(f"Input: {inputs[:, i]}, Output: {outputs[:, i]}")
-losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.01, batch_size=10, epochs=1000) #smaller batch sizes are better for continuous data
+losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.01, batch_size=10, epochs=1000) # smaller batch sizes are better for continuous data
 # test data
 test_inputs = np.array([[0, 0], [1, 0], [0,1], [1,1]]).T
 predictions = model.predict(test_inputs)
@@ -31,24 +31,32 @@ print("\nPredictions:")
 print(predictions)
 for i in range(test_inputs.shape[1]):
     print(f"Input: {test_inputs[:, i]}, Predicted Class: {predictions[0, i]}")  # since output is a single neuron with sigmoid, we can directly use the value as class prediction
+"""
 
-"""# XOR operation. non linearly separable, so needs hidden layer
+#"""# XOR operation. non linearly separable, so needs hidden layer
 model = Network(2) # 2 inputs for XOR
-model.add_hidden_layer(2, 'relu') # A single hidden layer, 4 neurons (often enough for XOR)
-model.add_output_layer(2, 'softmax') # weirdly enough, just this was enough to get it to work, no hidden layers needed
+model.add_hidden_layer(10, 'relu') # A single hidden layer, 2 neurons work. using 10 cuz 2 doesnt work on certain initial conditions (41 if not softmax weirdly enough)
+model.add_output_layer(2, 'softmax') 
 
-inputs = np.random.rand(2, 1000) * 10  # 2 inputs, 1000 samples
-outputs = np.zeros((2, 1000))  # 2 classes for softmax output
-outputs[np.logical_xor(inputs[0] > 5, inputs[1] > 5).astype(int), np.arange(1000)] = 1
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]]).T
+Y_raw = np.array([0, 1, 1, 0])  # class labels: 0 or 1
 
-val_inputs = np.random.rand(2, 100) * 10  # 2 inputs, 100 samples
-val_outputs = np.zeros((2, 100))  # 2 classes for softmax output
-val_outputs[np.logical_xor(val_inputs[0] > 5, val_inputs[1] > 5).astype(int), np.arange(100)] = 1
-#Optional: Print a few samples to check
+# One-hot encode the labels for softmax (2 classes)
+Y = np.zeros((2, 4))
+Y[Y_raw, np.arange(4)] = 1
+
+# Duplicate data to make batches
+inputs = np.tile(X, 250)  # (2, 1000)
+outputs = np.tile(Y, 250)  # (2, 1000)
+
+val_inputs = np.tile(X, 25)  # (2, 100)
+val_outputs = np.tile(Y, 25)  # (2, 100)
+
+# Print a few samples from the training data
 print("Sample training data (inputs and expected outputs):")
 for i in range(5):
     print(f"Input: {inputs[:, i]}, Output: {outputs[:, i]}")
-losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.001, batch_size=1000, epochs=10000000) #smaller batch sizes are better
+losses = model.train(inputs, outputs, val_inputs, val_outputs, learning_rate=0.1, batch_size=100, epochs=10000) # smaller batch sizes are better
 # test data
 test_inputs = np.array([[0, 0], [1, 0], [0,1], [1,1]]).T
 predictions = model.predict(test_inputs)
@@ -58,7 +66,7 @@ print("\nPredictions (One-Hot Encoded):")
 print(predictions)
 for i in range(test_inputs.shape[1]):
     print(f"Input: {test_inputs[:, i]}, Predicted Class: {np.argmax(predictions[:, i])}")
-"""
+#"""
 
 """
 #classify where 2d point lies in which region of x+y>5 and x-y<3

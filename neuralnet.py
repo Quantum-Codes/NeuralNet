@@ -77,7 +77,6 @@ class Network:
 
 
     def add_hidden_layer(self, neurons: int, activation_func: Literal['sigmoid', 'relu', 'linear', 'softmax']):
-        """ docstr """
         """
         Dimension of weights - enable WX+b multiplication and addition. 
         b size = (neurons, 1)
