@@ -1,5 +1,7 @@
 # Neural network from scratch
-This is a neural network completely implemented from Numpy operations and arrays, with a nice interface
+This is a neural network completely implemented from Numpy operations and arrays, with a nice interface <be>
+Network implementation - `neuralnet.py`<br>
+examples - `main.py`
 
 ## Running locally:
 1. Clone
