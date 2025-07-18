@@ -1,5 +1,5 @@
-# wip
-learning math related to neural networks
+# Neural network from scratch
+This is a neural network completely implemented from Numpy operations and arrays, with a nice interface
 
 ## Running locally:
 1. Clone
